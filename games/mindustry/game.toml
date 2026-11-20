@@ -1,0 +1,73 @@
+# Mindustry trial: mass player feedback -> verified change in the real game code.
+# Run games/mindustry/setup.sh once (clones v160.8 source + official server build, compiles the probe).
+game = "Mindustry"
+
+[analysis]
+half_life_hours = 720      # reviews are slower-moving than launch-week social posts
+top_n = 6
+use_llm = false            # theme grouping stays rule-based; the LLM reads direction via `fanpulse label`
+
+[steam]                     # live data: set enabled = true and file.enabled = false
+enabled = false
+appid = 1127400
+max_reviews = 20000
+languages = ["english"]
+min_playtime_hours = 1      # skip drive-by reviews
+
+[file]                      # synthetic demo set; point at saved real reviews to use those
+enabled = true
+path = "data/mindustry_demo_reviews.json"
+synthetic = true
+
+[trace]
+repo = "vendor/mindustry"
+sources = ["core/src/**/*.java"]
+max_files = 4
+probe = ["java", "-Dprobe.sourcepath=vendor/mindustry/annotations/src/main/java", "-cp", "games/mindustry/build",
+         "Probe", "vendor/mindustry-server.jar", "WaveMetric"]
+
+# ---------------------------------------------------------------- themes
+[themes.enemy_waves]
+title = "Enemy waves difficulty"
+kind = "balance"
+patterns = ['\bwaves?\b', '\benem(y|ies)\b', '\bspawn', '\bboss', 'flying units?', '\bshields?\b',
+            'over ?run', 'wiped', 'steamroll']
+[themes.enemy_waves.trace]
+metric = "threat"           # sum over waves of units x (health + shield), real Waves.generate output
+topic = "how hard the enemy waves and attacks are"   # what the LLM is asked about
+# must move with the target; boss_spike is reported but owned by the boss_warning feature
+guardrails = ["units", "threat_early", "threat_mid", "threat_late", "threat"]
+min_change = 0.05
+max_change = 0.25
+# "past wave 25", "around wave 30": measure the window players point at
+focus = { pattern = 'wave (\d+)', windows = [[20, "threat_early"], [40, "threat_mid"], [9999, "threat_late"]] }
+
+[themes.campaign_progression]
+title = "Campaign is confusing / progression feels grindy"
+kind = "qol"
+patterns = ['campaign', 'tech tree', 'research', '\bsectors?\b', '\bgrind', 'tutorial', 'confus',
+            'what to do', 'no idea how']
+
+[themes.performance]
+title = "Lag and frame drops in big factories"
+kind = "performance"
+patterns = ['\blag', '\bfps\b', 'crash', 'battery', 'stutter', 'freez', 'slows? down', 'overheat']
+
+[themes.logistics_ui]
+title = "Conveyor / building controls are fiddly (especially on mobile)"
+kind = "qol"
+patterns = ['conveyor', '\brouters?\b', '\bbelts?\b', 'placing', 'controls', 'schematic', 'touch', 'drag']
+
+[themes.multiplayer]
+title = "Multiplayer and servers"
+kind = "feature_request"
+patterns = ['multiplayer', '\bservers?\b', 'friends', 'co-?op', '\bhost']
+
+# ---------------------------------------------------------------- art (measured, not hand-written)
+[art]
+sprites = "core/assets-raw/sprites/units/*.png"
+outline_source = ["core/src/mindustry/graphics/Pal.java", "core/src/mindustry/type/UnitType.java"]  # outlineColor = Pal.darkerMetal
+outline_color_regex = 'darkerMetal = Color\.valueOf\("(\w+)"\)'
+outline_radius_regex = 'outlineRadius = (\d+)'
+size_examples = ["dagger", "mace", "fortress", "nova", "pulsar"]
+conventions = ["mech legs are separate sprites drawn underneath, so do not draw legs or feet on the body"]

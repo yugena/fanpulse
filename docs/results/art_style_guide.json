@@ -1,0 +1,141 @@
+{
+ "sprites_measured": 58,
+ "metal_ramp": [
+  "#4a4b53",
+  "#6e7080",
+  "#989aa4",
+  "#b0bac0"
+ ],
+ "accent_families": [
+  {
+   "colors": [
+    "#ffa665",
+    "#d06b53"
+   ],
+   "units": [
+    "flare",
+    "bryde",
+    "zenith",
+    "minke",
+    "mace",
+    "horizon",
+    "fortress",
+    "eclipse",
+    "dagger",
+    "risso",
+    "sei",
+    "antumbra"
+   ]
+  },
+  {
+   "colors": [
+    "#84f491",
+    "#62ae7f"
+   ],
+   "units": [
+    "corvus",
+    "mega",
+    "quad",
+    "aegires",
+    "cyerce",
+    "oxynoe",
+    "oct",
+    "poly",
+    "mono",
+    "quasar",
+    "retusa",
+    "navanax"
+   ]
+  },
+  {
+   "colors": [
+    "#bf92f9",
+    "#665c9f"
+   ],
+   "units": [
+    "toxopid",
+    "atrax",
+    "spiroct",
+    "crawler",
+    "arkyid",
+    "disrupt",
+    "elude"
+   ]
+  },
+  {
+   "colors": [
+    "#ffd37f",
+    "#d4816b"
+   ],
+   "units": [
+    "incite",
+    "beta",
+    "emanate",
+    "gamma"
+   ]
+  }
+ ],
+ "colors_per_sprite": [
+  5,
+  6
+ ],
+ "semi_alpha_max": 0.0,
+ "symmetry_min": 1.0,
+ "fill": [
+  0.215,
+  0.67
+ ],
+ "facet": [
+  4.14,
+  11.12
+ ],
+ "accent_share": [
+  0.062,
+  0.307
+ ],
+ "tone": [
+  111.8,
+  159.9
+ ],
+ "light": [
+  -11.7,
+  35.8
+ ],
+ "ramp_share": [
+  0.094,
+  0.34,
+  0.271,
+  0.295
+ ],
+ "light_top_minus_bottom": 17.1,
+ "outline": {
+  "color": "#565666",
+  "radius": 3
+ },
+ "conventions": [
+  "mech legs are separate sprites drawn underneath, so do not draw legs or feet on the body"
+ ],
+ "sizes": {
+  "dagger": [
+   48,
+   48
+  ],
+  "mace": [
+   64,
+   64
+  ],
+  "fortress": [
+   100,
+   80
+  ],
+  "nova": [
+   56,
+   56
+  ],
+  "pulsar": [
+   68,
+   58
+  ]
+ },
+ "reviewer_accepts_game_sprites": "48/58"
+}

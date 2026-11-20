@@ -1,0 +1,36 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>FanPulse trace: Enemy waves difficulty</title>
+<style>
+:root{--bg:#0f0d14;--fg:#ece8f2;--mut:#a59fb3;--acc:#ff4fa3;--acc2:#2fd3c9;--card:#1a1622;--line:#2c2638}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:32px 20px 80px}
+h1{font-size:2rem;background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;color:transparent}
+h2{margin-top:2.2rem;border-left:4px solid var(--acc);padding-left:10px} h3{color:var(--acc2);font-size:1.25rem} h4{margin:1.2rem 0 .3rem;color:var(--fg)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;display:block;overflow-x:auto}
+th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+th{color:var(--mut);font-weight:600} code{background:var(--card);padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}
+blockquote{margin:1rem 0;padding:12px 16px;background:#2a1a24;border-left:4px solid var(--acc);border-radius:6px}
+hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+pre{background:var(--card);padding:12px;border-radius:8px;overflow-x:auto;font-size:.8rem;line-height:1.45}
+.add{color:#5ee08a} .del{color:#ff7a8a}
+img{max-width:100%;image-rendering:pixelated;border-radius:8px} em{color:var(--mut)} li{margin:.3rem 0}
+</style></head><body><main id="c"></main><script>
+const md="# From player feedback to code: Enemy waves difficulty\n\n**What players asked for:** 110 want less, 34 want more, 584 unclear \u2192 **LESS** (weighted agreement 97%).\n**Target:** -23.7% on `threat_late` (size scaled by how strongly players agree).\n\n**Search:** 80 candidate numbers tested by running the game's own code; 19 measurably moved `threat_late`.\n\n## Proposed change\n\n- `core/src/mindustry/game/Waves.java:301`: `30` \u2192 `45` in `float shieldStart = 30, shieldsPerWave = 20 + difficulty*30f;`\n\nMeasured by running the patched game code:\n\n| Metric | Before | After | Change |\n|---|---|---|---|\n| units | 585.8 | 585.8 | +0.0% |\n| threat_early | 64,197.1 | 64,197.1 | +0.0% |\n| threat_mid | 186,159.6 | 178,221.1 | -4.3% |\n| threat_late | 457,788.3 | 368,386.6 | -19.5% |\n| threat | 708,145.0 | 610,804.8 | -13.7% |\n| boss_spike | 1.9 | 2.0 | +6.1% |\n| boss_warned | 0.0 | 0.0 | \u2014 |\n\n```diff\n--- a/core/src/mindustry/game/Waves.java\n+++ b/core/src/mindustry/game/Waves.java\n@@ -298,7 +298,7 @@\n         //max reasonable wave, after which everything gets boring\n         int cap = 150;\n \n-        float shieldStart = 30, shieldsPerWave = 20 + difficulty*30f;\n+        float shieldStart = 45, shieldsPerWave = 20 + difficulty*30f;\n         float[] scaling = {1, 2f, 3f, 4f, 5f};\n \n         Intc createProgression = start -> {\n```\n\n## All levers that measurably moved it (ranked by effect per % of change)\n\n\u2717 = would push a guarded measure (units, threat_early, threat_mid, threat_late, threat) against what players asked for.\n\n| Location | Code | Tested | threat_late | Other effects | Safe |\n|---|---|---|---|---|---|\n| `Waves.java:301` | `float shieldStart = 30, shieldsPerWave = 20 + difficulty*30f;` | `30` \u00d71.2667 | -12.7% | threat_mid -3.9%, threat -9.2%, boss_spike +3.9% | \u2713 |\n| `Waves.java:436` | `int shift = Math.max((int)(difficulty * 14 - 5), 0);` | `14` \u00d71.2857 | +11.9% | units +3.3%, threat_early +16.6%, threat_mid +7.5%, threat +11.2%, boss_spike -0.8% | \u2713 |\n| `Waves.java:311` | `int next = rand.random(8, 16) + (int)Mathf.lerp(5f, 0f, difficulty) + ` | `16` \u00d71.25 | -8.7% | units +9.2%, threat_early -1.9%, threat_mid +16.8%, threat -1.4%, boss_spike -12.3% | \u2717 units, threat_mid |\n| `Waves.java:342` | `if(curTier < 3 \\|\\| (rand.chance(0.05) && difficulty > 0.8)){` | `3` \u00d71.3333 | +9.3% | units +3.8%, threat_early +1.1%, threat_mid +5.9%, threat +7.7%, boss_spike -4.1% | \u2713 |\n| `Waves.java:301` | `float shieldStart = 30, shieldsPerWave = 20 + difficulty*30f;` | `20` \u00d71.25 | +5.8% | threat_early +6.2%, threat_mid +6.1%, threat +5.9%, boss_spike -2.2% | \u2713 |\n| `Waves.java:436` | `int shift = Math.max((int)(difficulty * 14 - 5), 0);` | `5` \u00d71.2 | -4.2% | units -1.4%, threat_early -6.6%, threat_mid -2.2%, threat -3.9%, boss_spike +1.7% | \u2713 |\n| `Waves.java:301` | `float shieldStart = 30, shieldsPerWave = 20 + difficulty*30f;` | `30f` \u00d71.25 | +5.0% | threat_early +5.5%, threat_mid +5.2%, threat +5.1%, boss_spike -2.0% | \u2713 |\n| `Waves.java:323` | `unitScaling = (difficulty < 0.4f ? rand.random(2.5f, 5f) : rand.random` | `4f` \u00d71.25 | -3.8% | units -4.6%, threat_early -7.2%, threat_mid -4.7%, threat -4.3%, boss_spike +1.1% | \u2713 |\n| `Waves.java:323` | `unitScaling = (difficulty < 0.4f ? rand.random(2.5f, 5f) : rand.random` | `1f` \u00d71.25 | -3.7% | units -2.5%, threat_early -2.4%, threat_mid -2.5%, threat -3.3%, boss_spike +1.3% | \u2713 |\n| `Waves.java:311` | `int next = rand.random(8, 16) + (int)Mathf.lerp(5f, 0f, difficulty) + ` | `4` \u00d71.25 | +3.5% | units +7.4%, threat_early -2.3%, threat_mid +8.2%, threat +4.2%, boss_spike -8.6% | \u2717 threat_early |\n";
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function inl(s){return esc(s).replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img alt="$1" src="$2">').replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/(^|[^*\w])\*([^*\s][^*]*)\*(?=[^*\w]|$)/g,'$1<em>$2</em>').replace(/(^|\W)_([^_]+)_(?=\W|$)/g,'$1<em>$2</em>')}
+let out=[],list=null,tbl=null;
+function flush(){if(list){out.push('<'+list.t+'>'+list.items.join('')+'</'+list.t+'>');list=null}if(tbl){out.push('<table>'+tbl.join('')+'</table>');tbl=null}}
+let pre=null;
+for(const raw of md.split('\n')){const l=raw.trimEnd();let m;
+ if(/^```/.test(l)){if(pre){out.push('<pre>'+pre.join('\n')+'</pre>');pre=null}else{flush();pre=[]}continue}
+ if(pre){pre.push(esc(raw).replace(/^([+-](?![+-]{2}).*)$/,(x)=>'<span class="'+(x[0]==='+'?'add':'del')+'">'+x+'</span>'));continue}
+ if(/^\|/.test(l)){if(/^\|[-| ]+\|$/.test(l))continue;const cells=l.slice(1,-1).split('|').map(c=>inl(c.trim()));
+  const tag=tbl?'td':'th';tbl=tbl||[];tbl.push('<tr>'+cells.map(c=>'<'+tag+'>'+c+'</'+tag+'>').join('')+'</tr>');continue}
+ if((m=l.match(/^(#{1,4}) (.*)/))){flush();out.push('<h'+m[1].length+'>'+inl(m[2])+'</h'+m[1].length+'>');continue}
+ if((m=l.match(/^\s*[-*] (.*)/))){if(!list||list.t!=='ul'){flush();list={t:'ul',items:[]}}list.items.push('<li>'+inl(m[1])+'</li>');continue}
+ if((m=l.match(/^\d+\. (.*)/))){if(!list||list.t!=='ol'){flush();list={t:'ol',items:[]}}list.items.push('<li>'+inl(m[1])+'</li>');continue}
+ if((m=l.match(/^> ?(.*)/))){flush();out.push('<blockquote>'+inl(m[1])+'</blockquote>');continue}
+ if(l==='---'){flush();out.push('<hr>');continue}
+ if(!l){flush();continue} flush();out.push('<p>'+inl(l)+'</p>');}
+flush();document.getElementById('c').innerHTML=out.join('\n');
+</script></body></html>

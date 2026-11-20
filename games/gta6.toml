@@ -1,0 +1,75 @@
+# GTA VI: offline demo config (synthetic data). Enable real sources and set keys per README.
+game = "Grand Theft Auto VI"
+
+[analysis]
+half_life_hours = 48
+top_n = 8
+use_llm = true
+
+[file]                      # synthetic demo set
+enabled = true
+path = "data/demo_posts.json"
+synthetic = true
+
+[reddit]
+enabled = false
+subreddits = ["GTA6", "GTAVI", "GTA", "gtaonline"]
+queries = ["bug", "fix", "please add", "wish", "annoying", "patch", "cops", "checkpoint", "fps"]
+
+[discord]
+enabled = false
+channel_ids = []
+
+[meta]
+enabled = false
+instagram_hashtags = ["gta6", "gtavi"]
+facebook_page_ids = []
+
+# ---------------------------------------------------------------- themes
+# patterns: lower-case regexes. proposal: file stem in proposals/ with an authored write-up.
+[themes.police_wanted]
+title = "Police spawn behind the player / wanted level feels unfair"
+kind = "balance"
+proposal = "police_spawn_fairness"
+patterns = ['\bcops?\b', '\bpolice\b', 'wanted (level|star)', 'spawn(ed|s|ing)? (right )?(behind|in front|next to)',
+            '\bswat\b', 'helicopter']
+
+[themes.mission_checkpoints]
+title = "Mission checkpoints too far apart / restart loses progress"
+kind = "qol"
+proposal = "mission_checkpoints"
+patterns = ['checkpoint', 'restart(ing)? (the )?mission', 'mission fail', 'redo (the )?whole', 'replay(ing)? (the )?(whole|entire)']
+
+[themes.vehicle_handling]
+title = "Vehicle handling feels floaty / too heavy"
+kind = "balance"
+proposal = "vehicle_handling_tunables"
+patterns = ['handling', '\bfloaty\b', '\bdrift', 'bikes? (feel|handle)', 'traction', 'steering', 'like (they.re )?on ice']
+
+[themes.streaming_performance]
+title = "Frame drops & texture pop-in at high speed"
+kind = "performance"
+proposal = "streaming_prefetch"
+patterns = ['\bfps\b', 'frame ?rate', 'frame drops?', 'pop[- ]?in', 'stutter', 'performance mode', '\blag', 'textures? (load|pop)']
+
+[themes.weapon_wheel]
+title = "Weapon wheel is slow / want favourites & quick-swap"
+kind = "qol"
+proposal = "weapon_wheel_favorites"
+patterns = ['weapon wheel', 'weapon (swap|switch)', 'quick ?swap', 'favou?rite weapons?', 'inventory']
+
+[themes.photo_mode]
+title = "Add a full photo mode"
+kind = "feature_request"
+patterns = ['photo ?mode', '\bsnapmatic\b', 'free ?cam']
+
+[themes.hud_minimap]
+title = "HUD/minimap options (hide HUD, zoom, GPS)"
+kind = "qol"
+patterns = ['\bhud\b', 'mini ?map', '\bgps\b', 'waypoint']
+
+[themes.store_codes]
+title = "Physical copies missing or reused download codes"
+kind = "ops"
+proposal = "entitlement_ops"
+patterns = ['download code', 'code (was )?already (used|redeemed)', 'no (download )?code', 'scratch', 'physical (copy|edition)']

@@ -1,0 +1,10 @@
+# Art spec: what new content needs art. The style rules come from the measured guide, not from here.
+id = "herald"
+title = "Herald: boss-warning scout"
+description = "A new tier-2 ground mech in the dagger line that walks a few waves ahead of a boss. It carries a signal beacon so players learn to read it as 'a boss is coming'."
+why = "19 Steam reviews say bosses arrive without warning. The boss_warning feature spawns heralds before big bosses; a distinct sprite makes that warning readable at a glance."
+family = "dagger"                       # accent family is looked up from this unit
+size = [64, 64]                         # tier 2, same as mace
+silhouette = "compact armoured body with wide shoulder plates and a tall signal-beacon mast at the front, clearly different from the mace"
+prompt_subject = "a small armoured robot scout mech carrying a signal beacon antenna"
+compare_with = ["dagger", "mace", "fortress"]

@@ -1,0 +1,4 @@
+out/
+vendor/
+games/*/build/
+__pycache__/

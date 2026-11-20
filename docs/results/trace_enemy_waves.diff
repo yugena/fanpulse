@@ -1,0 +1,11 @@
+--- a/core/src/mindustry/game/Waves.java
++++ b/core/src/mindustry/game/Waves.java
+@@ -298,7 +298,7 @@
+         //max reasonable wave, after which everything gets boring
+         int cap = 150;
+ 
+-        float shieldStart = 30, shieldsPerWave = 20 + difficulty*30f;
++        float shieldStart = 45, shieldsPerWave = 20 + difficulty*30f;
+         float[] scaling = {1, 2f, 3f, 4f, 5f};
+ 
+         Intc createProgression = start -> {

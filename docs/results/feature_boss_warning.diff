@@ -1,0 +1,56 @@
+--- a/core/src/mindustry/game/Waves.java
++++ b/core/src/mindustry/game/Waves.java
+@@ -367,8 +367,25 @@
+ 
+         int bossTier = difficulty < 0.6 ? 3 : 4;
+ 
++        //mini-bosses: weaker guardians of a boss's unit line 4, 3 and 2 waves before it, so players can see it coming
++        Cons2<UnitType[], Integer> heralds = (line, start) -> {
++            for(int lead : new int[]{4, 3, 2}){
++                out.add(new SpawnGroup(line[bossTier - 1]){{
++                    unitAmount = 1;
++                    begin = start - lead;
++                    spacing = bossSpacing;
++                    end = never;
++                    max = 4;
++                    unitScaling = bossSpacing;
++                    shieldScaling = shieldsPerWave;
++                    effect = StatusEffects.boss;
++                }});
++            }
++        };
++
+         //main boss progression
+-        out.add(new SpawnGroup(Structs.random(rand, species)[bossTier]){{
++        UnitType[] bossLine = Structs.random(rand, species);
++        out.add(new SpawnGroup(bossLine[bossTier]){{
+             unitAmount = 1;
+             begin = bossWave;
+             spacing = bossSpacing;
+@@ -379,10 +396,14 @@
+             effect = StatusEffects.boss;
+         }});
+ 
+-        //alt boss progression
+-        out.add(new SpawnGroup(Structs.random(rand, species)[bossTier]){{
++        heralds.get(bossLine, bossWave);
++
++        //alt boss progression (line and start drawn in the original order, so the random sequence is unchanged)
++        UnitType[] altLine = Structs.random(rand, species);
++        int altBegin = bossWave + rand.random(3, 5) * bossSpacing;
++        out.add(new SpawnGroup(altLine[bossTier]){{
+             unitAmount = 1;
+-            begin = bossWave + rand.random(3, 5) * bossSpacing;
++            begin = altBegin;
+             spacing = bossSpacing;
+             end = never;
+             max = 16;
+@@ -390,6 +411,8 @@
+             shieldScaling = shieldsPerWave;
+             effect = StatusEffects.boss;
+         }});
++
++        heralds.get(altLine, altBegin);
+ 
+         int finalBossStart = 120 + rand.random(30);
+ 

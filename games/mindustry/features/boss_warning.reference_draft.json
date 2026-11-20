@@ -1,0 +1,29 @@
+{
+ "author": "reference draft, hand-written by Claude (4 rounds; acceptance bar unchanged)",
+ "files_read": [
+  "core/src/mindustry/game/Waves.java"
+ ],
+ "summary": "Each main and alt boss wave is heralded 4, 3 and 2 waves earlier by a guardian from the same unit line, one tier lower, repeating on the boss's schedule. Random calls keep their original order, so all other waves are unchanged.",
+ "edits": [
+  {
+   "file": "core/src/mindustry/game/Waves.java",
+   "find": "        //main boss progression\n        out.add(new SpawnGroup(Structs.random(rand, species)[bossTier]){{",
+   "replace": "        //mini-bosses: weaker guardians of a boss's unit line 4, 3 and 2 waves before it, so players can see it coming\n        Cons2<UnitType[], Integer> heralds = (line, start) -> {\n            for(int lead : new int[]{4, 3, 2}){\n                out.add(new SpawnGroup(line[bossTier - 1]){{\n                    unitAmount = 1;\n                    begin = start - lead;\n                    spacing = bossSpacing;\n                    end = never;\n                    max = 4;\n                    unitScaling = bossSpacing;\n                    shieldScaling = shieldsPerWave;\n                    effect = StatusEffects.boss;\n                }});\n            }\n        };\n\n        //main boss progression\n        UnitType[] bossLine = Structs.random(rand, species);\n        out.add(new SpawnGroup(bossLine[bossTier]){{"
+  },
+  {
+   "file": "core/src/mindustry/game/Waves.java",
+   "find": "        //alt boss progression\n        out.add(new SpawnGroup(Structs.random(rand, species)[bossTier]){{",
+   "replace": "        heralds.get(bossLine, bossWave);\n\n        //alt boss progression (line and start drawn in the original order, so the random sequence is unchanged)\n        UnitType[] altLine = Structs.random(rand, species);\n        int altBegin = bossWave + rand.random(3, 5) * bossSpacing;\n        out.add(new SpawnGroup(altLine[bossTier]){{"
+  },
+  {
+   "file": "core/src/mindustry/game/Waves.java",
+   "find": "            begin = bossWave + rand.random(3, 5) * bossSpacing;",
+   "replace": "            begin = altBegin;"
+  },
+  {
+   "file": "core/src/mindustry/game/Waves.java",
+   "find": "        int finalBossStart = 120 + rand.random(30);",
+   "replace": "        heralds.get(altLine, altBegin);\n\n        int finalBossStart = 120 + rand.random(30);"
+  }
+ ]
+}

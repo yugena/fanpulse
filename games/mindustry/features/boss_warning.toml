@@ -1,0 +1,20 @@
+# Feature spec: what players asked for, the evidence, and what "done" means (measured by the probe).
+id = "boss_warning"
+title = "Mini-boss warning before big boss waves"
+request = "Add a mini-boss a few waves before each big boss wave: a weaker guardian of the same unit line, so players can see what is coming and prepare their defenses."
+demand = "19 of 10,952 Steam reviews complain that bosses arrive without warning or as a sudden spike; one asks for exactly this."
+evidence = [
+  "Maybe add a mini boss here and there, that preps you for the big boss. Make the mini boss a simpler version of the boss, so you know what to prepare for.",
+  "The vawes are kinda basic, with a sudden HUGE boss after several easy waves.",
+  "Having a boss enemy just fly around your chokepoint would have been fine if any prior enemy had done so or there was any warning of it.",
+  "You need to gamble on how much defenses you need to build because you have no idea how strong the bosses are.",
+  "The boss seems way too stronger than the previous waves, and such difference may lead to a sudden death just at the final wave.",
+]
+notes = "Procedural waves are built in Waves.generate; guardians use effect = StatusEffects.boss."
+
+checks = [
+  { metric = "boss_warned", at_least = 0.8 },          # most big bosses now have a herald 2-6 waves earlier
+  { metric = "boss_spike", change_at_most = -0.15 },   # the jump into a boss wave shrinks by 15%+
+  { metric = "threat_early", within = 0.02 },          # early game untouched
+  { metric = "threat", within = 0.10 },                # overall difficulty roughly unchanged
+]
