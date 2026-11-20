@@ -61,9 +61,10 @@ def draft(spec: dict, cfg: dict, previous: dict | None = None) -> dict:
              f"Acceptance checks (measured by running the game): {json.dumps(spec['checks'])}",
              spec.get("notes", "")]
     if previous:
-        parts.append(f"Your previous attempt failed verification:\n{json.dumps(previous)[:4000]}\nFix it.")
+        parts.append(f"Your previous attempt fell short (failed checks and/or players it didn't help):\n"
+                     f"{json.dumps(previous)[:6000]}\nFix it.")
     parts += [f"=== {f} ===\n{(repo / f).read_text()}" for f in files]
-    out = json.loads(llm.chat(DRAFT_SYSTEM, "\n\n".join(parts), json_mode=True, max_tokens=32000))
+    out = llm.ask(DRAFT_SYSTEM, "\n\n".join(parts), max_tokens=32000)
     return {"author": llm.MODEL, "files_read": files, **out}
 
 

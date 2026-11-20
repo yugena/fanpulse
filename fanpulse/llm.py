@@ -64,18 +64,32 @@ Most reviews that merely mention the topic are 0. A mixed complaint with no sing
 Respond as JSON: {{"labels":[{{"i":<index>,"d":-1|0|1}}]}}"""
 
 
-def directions(texts: list[str], topic: str, batch: int = 10) -> list[int]:
-    out = [0] * len(texts)
+def ask(system: str, user: str, max_tokens: int = 16000) -> dict:
+    """One JSON request; an empty reply (reasoning budget spent) is retried once with double the budget."""
+    try:
+        return json.loads(chat(system, user, json_mode=True, max_tokens=max_tokens))
+    except EmptyReply:
+        return json.loads(chat(system, user, json_mode=True, max_tokens=2 * max_tokens))
+
+
+def per_item(system: str, texts: list[str], key: str, batch: int = 10, clip: int = 1200,
+             done: int = 0, total: int | None = None) -> list[list[dict]]:
+    """Send texts in batches as [{i, text}]; the reply's `key` list holds rows tagged with i.
+    Returns, for every input text, the rows the model gave for it (malformed indices are dropped).
+    done/total: where this call sits in a longer run, for the progress line."""
+    total = total or len(texts)
+    out: list[list[dict]] = [[] for _ in texts]
     for start in range(0, len(texts), batch):
-        chunk = [{"i": i, "text": t[:1200]} for i, t in enumerate(texts[start:start + batch])]
-        prompt = (DIRECTION_SYSTEM.format(topic=topic), json.dumps(chunk))
-        try:
-            reply = chat(*prompt, json_mode=True)
-        except EmptyReply:  # one retry with a bigger thinking budget
-            reply = chat(*prompt, json_mode=True, max_tokens=32000)
-        print(f"\r  read {min(start + batch, len(texts))}/{len(texts)} reviews", end="", file=sys.stderr)
-        for lab in json.loads(reply).get("labels", []):
-            if isinstance(lab.get("i"), int) and 0 <= lab["i"] < len(chunk) and lab.get("d") in (-1, 0, 1):
-                out[start + lab["i"]] = lab["d"]
-    print(file=sys.stderr)
+        chunk = [{"i": i, "text": t[:clip]} for i, t in enumerate(texts[start:start + batch])]
+        for row in ask(system, json.dumps(chunk)).get(key, []):
+            if isinstance(row.get("i"), int) and 0 <= row["i"] < len(chunk):
+                out[start + row["i"]].append(row)
+        print(f"\r  read {done + min(start + batch, len(texts))}/{total} reviews", end="", file=sys.stderr)
+    if done + len(texts) >= total:
+        print(file=sys.stderr)
     return out
+
+
+def directions(texts: list[str], topic: str, batch: int = 10) -> list[int]:
+    rows = per_item(DIRECTION_SYSTEM.format(topic=topic), texts, "labels", batch)
+    return [r[0]["d"] if r and r[0].get("d") in (-1, 0, 1) else 0 for r in rows]

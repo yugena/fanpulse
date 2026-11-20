@@ -63,6 +63,42 @@ title = "Multiplayer and servers"
 kind = "feature_request"
 patterns = ['multiplayer', '\bservers?\b', 'friends', 'co-?op', '\bhost']
 
+# ---------------------------------------------------------------- needs (`fanpulse needs`)
+# Areas Muse sorts each specific need into. Anything that fits none comes back as new:<name>, so this
+# list steers the grouping without capping what players can ask for.
+[needs.themes]
+controls_ui = "building/placing controls, menus, camera, touch input, interface clarity"
+unit_control = "commanding units, RTS-style control, unit AI and pathing"
+onboarding = "tutorial, explaining mechanics, knowing what to do next"
+campaign_grind = "research cost, resource grind, sector progression pace, tech tree"
+saves_progress = "saves, undo, losing progress, sector loss, cloud sync"
+wave_difficulty = "enemy wave strength, pacing, time between waves, boss waves"
+enemy_variety = "new enemy types, wave composition, boss mechanics and warnings"
+content = "new blocks, units, maps, planets, game modes"
+version_changes = "changes between versions (v6/v7/v8) players want reverted or kept"
+multiplayer = "servers, co-op, griefing, moderation, netcode"
+performance = "lag, frame rate, crashes, battery, load times"
+platform_price = "price, platform-specific issues (mobile, Steam vs free), DRM, achievements"
+
+# ---------------------------------------------------------------- iterate (`fanpulse iterate`)
+# What the probe can measure. A need no metric can show is routed to "design" and flagged, never faked.
+[iterate]
+coverage_target = 0.7     # share of the need's players a change must address (judged per player)
+max_rounds = 3
+guardrails = [{ metric = "threat_early", within = 0.02 }, { metric = "threat", within = 0.10 }]
+
+[iterate.metrics]
+units = "average enemy units per wave (waves 1-100, 3 difficulties x 5 seeds)"
+threat_early = "enemy strength, waves 1-20 (units x health+shield)"
+threat_mid = "enemy strength, waves 21-40"
+threat_late = "enemy strength, waves 41-60"
+threat = "enemy strength across all waves"
+boss_spike = "how sharply a big-boss wave jumps above the 5 waves before it"
+boss_warned = "share of big-boss waves preceded 2-6 waves earlier by a smaller guardian"
+
+[iterate.tune]            # areas the numeric tuner can move, and the probe theme that holds their levers
+wave_difficulty = "enemy_waves"
+
 # ---------------------------------------------------------------- art (measured, not hand-written)
 [art]
 sprites = "core/assets-raw/sprites/units/*.png"

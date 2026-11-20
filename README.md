@@ -9,17 +9,6 @@ Players don't file tickets. They say "the waves get way too hard around wave 30"
 4. **Traces it to code:** finds the numbers in the codebase that could control it, then **runs the game's own code** with each one nudged to see which actually move it.
 5. **Proposes a change sized to the request,** with guardrails, measures it again on the real code, and outputs a `git apply`-ready diff.
 
-## See the results
-| What | File |
-|---|---|
-| Real Steam reviews → verified change to Mindustry's wave code | [`docs/results/trace_enemy_waves.md`](docs/results/trace_enemy_waves.md) |
-| Feature request ("warn me before the boss") → drafted + verified code | [`docs/results/feature_boss_warning.md`](docs/results/feature_boss_warning.md) |
-| New unit art: measured style guide → brief → generated → reviewed | [`docs/results/herald_lineup.png`](docs/results/herald_lineup.png), [`art_brief_herald.md`](docs/results/art_brief_herald.md) |
-| Full write-up, including what didn't work | [`TRIAL_RESULTS.md`](TRIAL_RESULTS.md) |
-| Playable mod: the Herald in Mindustry | [yugena/fanpulse-herald](https://github.com/yugena/fanpulse-herald) |
-
-![Herald beside Mindustry's own units](docs/results/herald_lineup.png)
-
 ## The Mindustry trial (open-source game, real code)
 ```bash
 pip install -r requirements.txt
@@ -63,6 +52,24 @@ python3 -m fanpulse.cli verify --config games/mindustry/game.toml --spec ... --d
 ```
 The tool locates the code from the players' own words, the LLM returns exact find/replace edits, and `verify` compiles and runs the real game to check every criterion. A failed verification can be fed back with `draft --previous`. On a Mac: double-click `Draft feature with Muse.command`. Results for "warn me before the boss" are in TRIAL_RESULTS.md.
 
+## From thousands of reviews to the change that answers them
+```bash
+python3 -m fanpulse.cli needs   --config games/mindustry/game.toml --posts reviews.json            # extract + rank
+python3 -m fanpulse.cli iterate --config games/mindustry/game.toml --posts reviews.json --need 1   # build + judge + repair
+```
+**`needs`** reads every negative review and every review that asks for something. Muse lists each specific need with the exact sentence that shows it. A need whose quote isn't really in the review is dropped and counted. Differently worded needs are merged, and the list is ranked by how many *different* players share each one. Runs are checkpointed, so an interrupted run resumes.
+
+**`iterate`** takes one ranked need and:
+1. **Routes it** to tune, feature, art or design. A need that no probe metric can show goes to design and is flagged; the tool never invents a metric.
+2. **Writes acceptance checks** from the players' words against the measured baseline, then adds the game's guardrails.
+3. **Builds the change.** Tuning uses the numeric tracer; features go through draft, compile, run and measure.
+4. **Judges coverage player by player.** Every quote gets yes, partly, no or different.
+   - A yes or partly must cite a line the change actually adds, otherwise it counts as no.
+   - "Different" marks a merge mistake and is left out of the score.
+5. **Repairs.** Failed checks and the players still not helped go into the next draft. It runs up to 3 rounds, keeps the best round, and stops early if the model repeats itself.
+
+The report lists who is still not addressed. On a Mac, double-click `Rank needs with Muse.command`, then `Iterate on a need with Muse.command`. The first iterate run downloads Java 17 and the game source.
+
 ## New content needs art: style guide → brief → any image generator → review
 ```bash
 python3 -m fanpulse.cli art --config games/mindustry/game.toml --spec games/mindustry/art/herald.toml                 # guide + brief + prompt
@@ -94,18 +101,14 @@ fanpulse/collectors/  steam · reddit · discord_api · meta_graph · demo   (of
 fanpulse/analyze.py   classify → cluster → rank; intent (more/less, agreement)
 fanpulse/codeindex.py where in the code a theme might live
 fanpulse/tracer.py    probe, guardrails, sizing, diff, trace report
+fanpulse/needs.py     needs: select reviews, extract with verified quotes, merge, rank by players
+fanpulse/iterate.py   route a need, checks from players' words, build, per-player coverage, repair
 fanpulse/feature.py   feature specs: locate code, LLM draft, apply, verify against checks
 fanpulse/art.py       measured style guide, designer brief, conform + calibrated review, in-game lineup
 fanpulse/muse_connector.py  MCP server for Meta Muse (incl. get_code_change)
 games/<game>.toml     sources, themes, probe; one file per game
 games/mindustry/      Probe.java (generic JVM runner), WaveMetric.java, setup.sh
 ```
-
-## Data
-The 10,952 Steam reviews used in the trial are **not** in this repo; they're other people's posts. Re-collect them with `python3 -m fanpulse.collectors.steam --appid 1127400 --out reviews.json`. `data/real/` holds only the hand labels and Muse's labels (by Steam review ID), so the accuracy numbers can be reproduced.
-
-## License
-MIT, except `games/mindustry/` (the probe, metrics, mod and patches), which derives from [Mindustry](https://github.com/Anuke/Mindustry) and is GPL-3.0.
 
 ## Tests
 ```bash

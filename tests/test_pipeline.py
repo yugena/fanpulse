@@ -101,7 +101,70 @@ def test_llm_directions_batches_and_ignores_bad_rows(monkeypatch):
             raise llm.EmptyReply("finish_reason=length")
         return json.dumps({"labels": [{"i": 0, "d": 1}]})
     monkeypatch.setattr(llm, "chat", flaky)
-    assert llm.directions(["a"], "waves") == [1] and calls == [None, 32000]
+    assert llm.directions(["a"], "waves") == [1] and calls == [16000, 32000]
+
+
+def test_needs_drop_fake_quotes_merge_wording_and_count_players_once(monkeypatch, tmp_path):
+    from fanpulse import llm, needs
+    cfg = {"game": "G", "needs": {"themes": {"waves": "enemy waves", "ui": "controls"}}}
+    posts = [P("Bosses come with no warning. Please add a heads-up.", author="a", likes=5),
+             P("I wish boss waves were announced first", author="b"),
+             P("Really, I wish boss waves were announced", author="b", hours=2),   # same player again
+             P("Controls are fine. Great game.", author="c")]
+    for p in posts:
+        p.source = "steam:1:negative"
+
+    def fake(system, user, **k):
+        items = json.loads(user)
+        if "Group needs" in system:  # merge: two wordings of one change
+            return json.dumps({"groups": [{"need": "warn before boss waves", "members": list(range(len(items)))}]})
+        rows = []
+        for it in items:
+            t = it["text"]
+            if "warning" in t:
+                rows.append({"i": it["i"], "theme": "waves", "need": "boss warning", "kind": "request", "quote": "Please add a heads-up"})
+            elif "announced" in t:
+                rows.append({"i": it["i"], "theme": "waves", "need": "announce boss waves", "kind": "request", "quote": "boss waves were announced"})
+            else:  # invented quote: must be dropped, not counted
+                rows.append({"i": it["i"], "theme": "ui", "need": "undo button", "kind": "request", "quote": "I need an undo button"})
+        return json.dumps({"needs": rows})
+    monkeypatch.setattr(llm, "chat", fake)
+
+    cache = tmp_path / "x.json"
+    ex = needs.extract(posts, cfg, cache)
+    assert json.loads(cache.read_text()) == ex                              # checkpointed
+    monkeypatch.setattr(llm, "chat", lambda *a, **k: 1 / 0)
+    assert needs.extract(posts, cfg, cache) == ex                           # resumes without re-asking
+    monkeypatch.setattr(llm, "chat", fake)
+    r = needs.rank(posts, ex, cfg)
+    assert r["quotes_not_in_review"] == 1 and len(r["needs"]) == 1
+    top = r["needs"][0]
+    assert top["need"] == "warn before boss waves" and top["players"] == 2 and top["helpful"] == 6
+    assert "Please add a heads-up" in needs.to_markdown(r)
+
+
+def test_iterate_routes_honestly_and_judge_needs_real_diff_lines(monkeypatch):
+    from fanpulse import iterate, llm
+    cfg = {"game": "G", "iterate": {"metrics": {"boss_warned": "x", "threat": "y"}, "tune": {"waves": "enemy_waves"}}}
+    need = {"need": "n", "theme": "ui", "players": 3, "quit": 0, "helpful": 0,
+            "evidence": [{"post": str(i), "quote": q} for i, q in enumerate(["a", "b", "c", "d"])]}
+    reply = {}
+    monkeypatch.setattr(llm, "chat", lambda *a, **k: json.dumps(reply))
+    reply.update(track="tune", direction=-1, metrics=["threat"])
+    assert iterate.route(need, cfg)["track"] == "feature"          # no tuner levers for this area
+    reply.update(track="feature", metrics=["fun_score"])
+    r = iterate.route(need, cfg)
+    assert r["track"] == "design" and r["unmeasurable"]            # nothing real can measure it
+
+    diff = "--- a/W.java\n+++ b/W.java\n-int x = 1;\n+heraldBefore(boss);\n"
+    reply.clear()
+    reply["players"] = [{"i": 0, "verdict": "yes", "line": "heraldBefore(boss);"},
+                        {"i": 1, "verdict": "yes", "line": "spawnEverythingTwice();"},   # invented
+                        {"i": 2, "verdict": "partly", "line": "heraldBefore(boss);"},
+                        {"i": 3, "verdict": "different"}]
+    j = iterate.judge(need, cfg, diff, {"threat": 1}, {"threat": 1})
+    assert [p["verdict"] for p in j["players"]] == ["yes", "no", "partly", "different"]
+    assert j["about_this_need"] == 3 and j["coverage"] == 0.5
 
 
 def test_steam_collector_pages_until_empty():

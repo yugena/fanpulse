@@ -3,16 +3,19 @@
    fanpulse trace  --config ... [--labels FILE]       ...then tune it into a verified code change
    fanpulse draft  --config ... --spec FEATURE.toml   the LLM drafts code for a feature request
    fanpulse verify --config ... --spec ... --draft F  apply the draft, run the game, check acceptance criteria
-   fanpulse art    --config ... --spec ART.toml [--image GEN.png]   style guide + brief; then review a generated image"""
+   fanpulse art    --config ... --spec ART.toml [--image GEN.png]   style guide + brief; then review a generated image
+   fanpulse needs  --config ... --posts FILE          the LLM lists each specific need with its quote; ranked by players
+   fanpulse iterate --config ... --posts FILE --need N   route need N, build it, judge it player by player, repair"""
 from __future__ import annotations
 
 import argparse
 import json
 import logging
+import sys
 import urllib.error
 from pathlib import Path
 
-from . import art, config, feature, pipeline
+from . import art, collectors, config, feature, iterate, needs, pipeline
 from .report import build_html
 
 
@@ -29,7 +32,7 @@ def _model_call(fn):
 
 def main() -> None:
     ap = argparse.ArgumentParser(prog="fanpulse")
-    ap.add_argument("cmd", choices=["scan", "label", "trace", "draft", "verify", "art"])
+    ap.add_argument("cmd", choices=["scan", "label", "trace", "draft", "verify", "art", "needs", "iterate"])
     ap.add_argument("--config", default=None)
     ap.add_argument("--theme", default=None, help="trace this theme id instead of the top traceable one")
     ap.add_argument("--posts", default=None, help="analyze saved real posts (JSON) instead of the configured sources")
@@ -37,6 +40,7 @@ def main() -> None:
     ap.add_argument("--spec", default=None, help="feature spec (games/<game>/features/<id>.toml)")
     ap.add_argument("--draft", default=None, help="draft JSON to verify (from `draft`)")
     ap.add_argument("--previous", default=None, help="failed verification JSON to feed back into `draft`")
+    ap.add_argument("--need", type=int, default=1, help="rank of the need to work on (`iterate`)")
     ap.add_argument("--image", default=None, help="generated image to conform and review (`art`)")
     args = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -77,6 +81,30 @@ def main() -> None:
     if args.posts:
         cfg |= {k: {"enabled": False} for k in ("steam", "reddit", "discord", "meta")}
         cfg["file"] = {"enabled": True, "path": args.posts, "synthetic": False}
+    if args.cmd == "needs":
+        posts = collectors.run_all(cfg)
+        picked = needs.select(posts)
+        print(f"Muse will read {len(picked)} of {len(posts)} reviews (negative or asking for something).", file=sys.stderr)
+        extracted = _model_call(lambda: needs.extract(picked, cfg, out / "needs_extracted.json"))
+        ranked = _model_call(lambda: needs.rank(posts, extracted, cfg))
+        md = needs.to_markdown(ranked)
+        (out / "needs_ranked.json").write_text(json.dumps(ranked, indent=1))
+        (out / "needs_ranked.md").write_text(md)
+        (out / "needs_ranked.html").write_text(build_html(md, f"FanPulse needs: {cfg.get('game', '')}"))
+        print(md.split("\n## ")[0] + f"\nReport: {out / 'needs_ranked.html'}")
+        return
+    if args.cmd == "iterate":
+        if not (out / "needs_ranked.json").exists():
+            raise SystemExit("Run `fanpulse needs` first: iterate works on its ranked list.")
+        ranked = json.loads((out / "needs_ranked.json").read_text())["needs"]
+        need = ranked[args.need - 1]
+        r = _model_call(lambda: iterate.run(need, cfg, collectors.run_all(cfg)))
+        md, slug = iterate.to_markdown(r, cfg), f"iterate_{args.need}"
+        (out / f"{slug}.json").write_text(json.dumps(r, indent=1, default=str))
+        (out / f"{slug}.md").write_text(md)
+        (out / f"{slug}.html").write_text(build_html(md, f"FanPulse: {need['need']}"))
+        print(md.split("\n```")[0] + f"\nReport: {out / (slug + '.html')}")
+        return
     clusters = pipeline.scan(cfg)
     md, html = pipeline.write_reports(clusters, cfg)
     for i, c in enumerate(clusters[:cfg.get("analysis", {}).get("top_n", 8)], 1):
