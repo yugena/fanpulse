@@ -20,7 +20,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
----
-Exception: everything under games/mindustry/ is derived from or links against
-Mindustry (Anuke, https://github.com/Anuke/Mindustry) and is licensed under the
-GNU General Public License v3.0; see games/mindustry/LICENSE.
